@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.Design.Serialization;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -76,12 +77,15 @@ namespace GridExample
         
         enum ColourType { Black, White, Neutral }
 
+        enum LegalMove { Illegal, Legal, Capture, Self}
+
         struct PieceType
         {
             public PlayerType Player;
             public ColourType Colour;
             public int Row;
             public int Col;
+            public LegalMove Legal;
         }
 
         // Initialize default board variavles and presets
@@ -98,8 +102,6 @@ namespace GridExample
             GameTick.Start();
 
             DrawSideBar();
-
-            MessageBox.Show("test");
 
             DrawGrid();
             ReadFEN(startPosition);
@@ -149,12 +151,36 @@ namespace GridExample
                 }
 
             //Highlights Squares covered by mouse
-            SolidBrush highlight = new SolidBrush(Color.FromArgb(160, 255, 0, 0));
+            SolidBrush highlight = new SolidBrush(Color.FromArgb(100, 255, 160, 0));
 
             int X = (mouse.X / SquareSize) * SquareSize;
             int Y = (mouse.Y / SquareSize) * SquareSize;
             if (mouse.X >= 0 && mouse.Y >= 0) { g.FillRectangle(highlight, X, Y, SquareSize, SquareSize); }
-
+            
+            for (int r = 0; r < 8; r++)
+            {
+                for (int c = 0; c < 8; c++)
+                {
+                    if (board[r, c].Legal == LegalMove.Self || board[r, c].Legal == LegalMove.Capture || board[r, c].Legal == LegalMove.Legal)
+                    {
+                        if (board[r, c].Legal == LegalMove.Legal)
+                        {
+                            highlight.Color = Color.FromArgb(160, 200, 200, 255);
+                        }
+                        else if (board[r, c].Legal == LegalMove.Capture)
+                        {
+                            highlight.Color = Color.FromArgb(160, 255, 0, 0);
+                        }
+                        else if (board[r, c].Legal == LegalMove.Self)
+                        {
+                            highlight.Color = Color.FromArgb(160, 0, 0, 255);
+                        }
+                        else { highlight.Color = Color.Transparent; }
+                        g.FillRectangle(highlight, c * SquareSize, r * SquareSize, SquareSize, SquareSize);
+                    }
+                }
+            }
+            
             //Draw Piece Overlay
             g.DrawImage(PieceImg, 0, 0);
 
@@ -162,6 +188,7 @@ namespace GridExample
             if (MouseDown)
             {
                 g.DrawImage(DragPiece, mouse.X - SquareSize * 3 / 10, mouse.Y - SquareSize / 2, SquareSize * 3 / 5, SquareSize);
+                StraightLegal();
             }
             pbxGrid.Image = GridImg;
 
@@ -355,6 +382,7 @@ namespace GridExample
                 mousePiece = board[r, c];
                 board[r, c] = empty;
                 ReadFEN(BoardtoFEN());
+                
             }
         }
         private void EndDrag(object sender, MouseEventArgs e)
@@ -364,7 +392,7 @@ namespace GridExample
             if (mousePiece.Player == PlayerType.e) { }
             else
             {
-                if (0 > r || r > 7 || 0 > c || c > 7)
+                if (0 > r || r > 7 || 0 > c || c > 7 || board[r, c].Legal == LegalMove.Illegal)
                 {
                     board[mousePiece.Row, mousePiece.Col] = mousePiece;
                 }
@@ -376,21 +404,104 @@ namespace GridExample
         }
 
 
-
-        private void pbxGrid_MouseClick(object sender, MouseEventArgs e)
+        // LEGAL MOVES //
+        private void ClearLegal()
         {
-
-        }
-
-        private void pbxGrid_MouseUp(object sender, MouseEventArgs e)
+            for (int c = 0; c < 8; c++)
+            {
+                for (int r = 0; r < 8; r++)
+                {
+                    board[r, c].Legal = LegalMove.Illegal;
+                }
+            }
+        }   
+        private void StraightLegal()
         {
+            ClearLegal();
+            int selfC = mousePiece.Col;
+            int selfR = mousePiece.Row;
 
-        }
-
-        private void pbxSide_Click(object sender, MouseEventArgs e)
-        {
+            board[selfR, selfC].Legal = LegalMove.Self;
+            //Right
+            for (int c = selfC + 1; c < 8; c++)
+            {
+                if (board[selfR, c].Player == PlayerType.e)
+                {
+                    board[selfR, c].Legal = LegalMove.Legal;
+                }
+                else if (board[selfR, c].Colour != board[selfR, selfC].Colour && board[selfR, c].Colour != ColourType.Neutral)
+                {
+                    board[selfR, c].Legal = LegalMove.Capture;
+                    break;
+                }
+                else if (board[selfR, c].Colour == board[selfR, selfC].Colour)
+                {
+                    board[selfR, c].Legal = LegalMove.Illegal;
+                }
+                else { board[selfR, c].Legal = LegalMove.Illegal; }
+            }
+            //Left
+            for (int c = selfC -1; c >= 0; c--)
+            {
+                if (board[selfR, c].Player == PlayerType.e)
+                {
+                    board[selfR, c].Legal = LegalMove.Legal;
+                }
+                else if (board[selfR, c].Colour != board[selfR, selfC].Colour && board[selfR, c].Colour != ColourType.Neutral)
+                {
+                    board[selfR, c].Legal = LegalMove.Capture;
+                    break;
+                }
+                else if (board[selfR, c].Colour == board[selfR, selfC].Colour)
+                {
+                    board[selfR, c].Legal = LegalMove.Illegal;
+                }
+                else { board[selfR, c].Legal = LegalMove.Illegal; }
+            }
             
+            //Up
+            for (int r = selfR - 1; r >= 0; r--)
+            {
+                if (board[r, selfC].Player == PlayerType.e)
+                {
+                    board[r, selfC].Legal = LegalMove.Legal;
+                }
+                else if (board[r, selfC].Colour != board[selfR, selfC].Colour && board[r, selfC].Colour != ColourType.Neutral)
+                {
+                    board[r, selfC].Legal = LegalMove.Capture;
+                    break;
+                }
+                else if (board[r, selfC].Colour == board[selfR, selfC].Colour)
+                {
+                    board[r, selfC].Legal = LegalMove.Illegal;
+                }
+                else { board[r, selfC].Legal = LegalMove.Illegal; }
+            }
+            //Down
+            for (int r = selfR + 1; r < 8; r++)
+            {
+                if (board[r, selfC].Player == PlayerType.e)
+                {
+                    board[r, selfC].Legal = LegalMove.Legal;
+                }
+                else if (board[r, selfC].Colour != board[selfR, selfC].Colour && board[r, selfC].Colour != ColourType.Neutral)
+                {
+                    board[r, selfC].Legal = LegalMove.Capture;
+                    break;
+                }
+                else if (board[r, selfC].Colour == board[selfR, selfC].Colour)
+                {
+                    board[r, selfC].Legal = LegalMove.Illegal;
+                }
+                else { board[r, selfC].Legal = LegalMove.Illegal; }
+            }
         }
+
+        private void DiagonalLegal()
+        { }
+
+        private void KnightLegal()
+        { }
 
         private void button1_Click(object sender, EventArgs e)
         {

@@ -213,7 +213,6 @@
             this.pbxGrid.Size = new System.Drawing.Size(656, 656);
             this.pbxGrid.TabIndex = 0;
             this.pbxGrid.TabStop = false;
-            this.pbxGrid.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pbxGrid_MouseClick);
             this.pbxGrid.MouseDown += new System.Windows.Forms.MouseEventHandler(this.StartDrag);
             this.pbxGrid.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pbxGrid_MouseMove);
             this.pbxGrid.MouseUp += new System.Windows.Forms.MouseEventHandler(this.EndDrag);
