@@ -9,6 +9,7 @@ using System.Security.Policy;
 using System.Text;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using Button = System.Windows.Forms.Button;
 
 namespace GridExample
 {
@@ -19,17 +20,14 @@ namespace GridExample
             InitializeComponent();
         }
 
-        // Initialize Grid Variables //
+        // Initialize Grid Variables
         const int GridPixSize = 656;
         const int SquareNum = 8;
         const int SquareSize = GridPixSize / SquareNum;
 
+        // Initalize Image Variables
         Bitmap GridImg = new Bitmap(GridPixSize, GridPixSize);
         Bitmap PieceImg = new Bitmap(GridPixSize, GridPixSize);
-        Bitmap FinalImg = new Bitmap(GridPixSize, GridPixSize);
-
-        Color Light = Color.Yellow;
-        Color Dark = Color.Lime;
 
         //Create SideBar Icons
         Bitmap[] Icons = new Bitmap[7] {
@@ -59,13 +57,21 @@ namespace GridExample
                 Properties.Resources.wKing,
                 Properties.Resources.wPawn };
 
+        Color Light = Color.Tan;
+        Color Dark = Color.Black;
+
+        // Initialize Mouse Variables
         Point mouse;
         int c;
         int r;
+        new bool MouseDown = false;
+        Bitmap DragPiece = new Bitmap(GridPixSize / 8, GridPixSize / 8);
 
+        // Initialize piece string data
         const string startPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         const string Types = "rnbqkpe";
 
+        // Initialize Board Array Variables (type, colour, location)
         enum PlayerType { r, n, b, q, k, p, e }
         
         enum ColourType { Black, White, Neutral }
@@ -77,12 +83,11 @@ namespace GridExample
             public int Row;
             public int Col;
         }
+
+        // Initialize default board variavles and presets
         PieceType[,] board;
         PieceType empty = new PieceType { Player = PlayerType.e, Colour = ColourType.Neutral };
-        PieceType mousePiece = new PieceType { Player = PlayerType.e, Colour = ColourType.Neutral };
-
-        new bool MouseDown = false;
-        Bitmap DragPiece = new Bitmap(GridPixSize / 8, GridPixSize / 8);
+        PieceType mousePiece;
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -94,21 +99,17 @@ namespace GridExample
 
             DrawSideBar();
 
+            MessageBox.Show("test");
+
             DrawGrid();
             ReadFEN(startPosition);
-
-            LoadGraphics();
         }
         private void GameTick_Tick(object sender, EventArgs e)
         {
             DrawGrid();
-            LoadGraphics();
-
-            c = mouse.X / SquareSize;
-            r = mouse.Y / SquareSize;
-
-            MouseX.Text = mouse.X.ToString();
-            MouseY.Text = mouse.Y.ToString();
+            
+            MouseX.Text = c.ToString();
+            MouseY.Text = r.ToString();
         }
         private void ResetGrid()
         {
@@ -117,21 +118,20 @@ namespace GridExample
 
         private void pbxGrid_MouseMove(object sender, MouseEventArgs e)
         {
-            if (e.Location.X >= 0 && e.Location.Y >= 0 && e.Location.X <= GridPixSize && e.Location.Y <= GridPixSize)
-            {  }
             mouse = e.Location;
+            if (mouse.X >= 0) { c = mouse.X / SquareSize; }
+            else { c = -1; }
 
-        }       // Detect Mouse Movements
-
-        private void pbxInfo_MouseMove(object sender, MouseEventArgs e)
-        {
-            mouse = e.Location;
+            if (mouse.Y >= 0) { r = mouse.Y / SquareSize; }
+            else { r = -1; }
         }
 
-        private void DrawGrid()                                     // Draws the grid pattern onto an independant bitmap
+        private void DrawGrid()                                     // Draws board, piece, and drag overlays
         {
             Graphics g = Graphics.FromImage(GridImg);
             g.Clear(pbxGrid.BackColor);
+
+            // Draw Checker Board
             SolidBrush b = new SolidBrush(Color.Black);
 
             for (int r = 0; r < 8; r++)
@@ -147,33 +147,32 @@ namespace GridExample
                     }
                     g.FillRectangle(b, c * SquareSize, r * SquareSize, SquareSize, SquareSize);
                 }
-            SolidBrush highlight = new SolidBrush(Color.FromArgb(160, 255, 0, 0));
-            
+
             //Highlights Squares covered by mouse
+            SolidBrush highlight = new SolidBrush(Color.FromArgb(160, 255, 0, 0));
+
             int X = (mouse.X / SquareSize) * SquareSize;
             int Y = (mouse.Y / SquareSize) * SquareSize;
             if (mouse.X >= 0 && mouse.Y >= 0) { g.FillRectangle(highlight, X, Y, SquareSize, SquareSize); }
-            
 
-
-            g.Dispose();
-        }
-        
-        private void LoadGraphics()                                 // Compiles Images into one bitmap to send to picturebox
-        {
-            Graphics g = Graphics.FromImage(FinalImg);
-            g.DrawImage(GridImg, 0, 0);
+            //Draw Piece Overlay
             g.DrawImage(PieceImg, 0, 0);
+
             // Draw drag piece on mouse if mouse is down
             if (MouseDown)
             {
                 g.DrawImage(DragPiece, mouse.X - SquareSize * 3 / 10, mouse.Y - SquareSize / 2, SquareSize * 3 / 5, SquareSize);
             }
-            pbxGrid.Image = FinalImg;
+            pbxGrid.Image = GridImg;
+
+            g.Dispose();
         }
+        
         
         private void DrawSideBar()
         {
+
+            /*
             Bitmap SideImg = new Bitmap(pbxSide.Width, pbxSide.Height);
             Graphics g = Graphics.FromImage(SideImg);
 
@@ -200,8 +199,10 @@ namespace GridExample
             }
 
             pbxSide.Image = SideImg;
+            */
         }
 
+        // FEN STRING CODE //
         private string[] FENtoPosition(string FEN)                  // Used to split only the position portion of the FEN
         {
             string[] SplitFEN;
@@ -269,7 +270,6 @@ namespace GridExample
                         }
 
                         Bitmap sprite = FindSprite(row, col);                           // Asks for sprite resource
-
                         g.DrawImage(sprite, (col * SquareSize) + (SquareSize * 2 / 10), row * SquareSize, SquareSize * 6 / 10, SquareSize);
 
                         col++;
@@ -278,7 +278,7 @@ namespace GridExample
             }
         }
 
-        private string BoardtoFEN()
+        private string BoardtoFEN()                                         // Read board arrays to create FEN position
         {
             string FEN = "";
             for (int row = 0; row < SquareNum;  row++)
@@ -318,7 +318,7 @@ namespace GridExample
         return FEN;
         }
         
-        private Bitmap FindSprite(int row, int col)                 // Determines Sprite IMG from 
+        private Bitmap FindSprite(int row, int col)                                     // Determines Sprite IMG from board location
         {
             Graphics g = Graphics.FromImage(PieceImg);
             Bitmap sprite = new Bitmap(GridPixSize / 8, GridPixSize / 8);
@@ -335,27 +335,11 @@ namespace GridExample
             {
             }
             return sprite;
-            
-        }
-        
-
-
-
-        private void pbxGrid_MouseClick(object sender, MouseEventArgs e)
-        {
-
         }
 
-        private void pbxGrid_MouseUp(object sender, MouseEventArgs e)
-        {
 
-        }
 
-        private void pbxSide_Click(object sender, MouseEventArgs e)
-        {
-            
-        }
-
+        // DRAG CODE //
         private void StartDrag(object sender, MouseEventArgs e)
         {
             MouseDown = true;
@@ -373,7 +357,6 @@ namespace GridExample
                 ReadFEN(BoardtoFEN());
             }
         }
-
         private void EndDrag(object sender, MouseEventArgs e)
         {
             MouseDown = false;
@@ -393,5 +376,60 @@ namespace GridExample
         }
 
 
+
+        private void pbxGrid_MouseClick(object sender, MouseEventArgs e)
+        {
+
+        }
+
+        private void pbxGrid_MouseUp(object sender, MouseEventArgs e)
+        {
+
+        }
+
+        private void pbxSide_Click(object sender, MouseEventArgs e)
+        {
+            
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This will Initialize a New Game");
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This will Initialize a New Game");
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This will Initialize a New Game");
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This will Initialize a New Game");
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This will Initialize a New Game");
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This will Initialize a New Game");
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This will Initialize a New Game");
+        }
+
+        private void button8_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This will Initialize a New Game");
+        }
     }
 }

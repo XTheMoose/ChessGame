@@ -41,3 +41,14 @@ C:\Users\tbdak\OneDrive\Documents\ICSU-23\Chess2\obj\x86\Debug\GridExample.pdb
 C:\Users\tbdak\OneDrive\Documents\ICSU-23\Chess2\bin\Debug\GridExample.exe.config
 C:\Users\tbdak\OneDrive\Documents\ICSU-23\Chess2\bin\Debug\GridExample.exe
 C:\Users\tbdak\OneDrive\Documents\ICSU-23\Chess2\bin\Debug\GridExample.pdb
+C:\Users\tbdak\OneDrive\Documents\GitHub\ChessGame\Chess\bin\Debug\GridExample.exe.config
+C:\Users\tbdak\OneDrive\Documents\GitHub\ChessGame\Chess\bin\Debug\GridExample.exe
+C:\Users\tbdak\OneDrive\Documents\GitHub\ChessGame\Chess\bin\Debug\GridExample.pdb
+C:\Users\tbdak\OneDrive\Documents\GitHub\ChessGame\Chess\obj\x86\Debug\GridExample.csproj.AssemblyReference.cache
+C:\Users\tbdak\OneDrive\Documents\GitHub\ChessGame\Chess\obj\x86\Debug\GridExample.csproj.SuggestedBindingRedirects.cache
+C:\Users\tbdak\OneDrive\Documents\GitHub\ChessGame\Chess\obj\x86\Debug\GridExample.Form1.resources
+C:\Users\tbdak\OneDrive\Documents\GitHub\ChessGame\Chess\obj\x86\Debug\GridExample.Properties.Resources.resources
+C:\Users\tbdak\OneDrive\Documents\GitHub\ChessGame\Chess\obj\x86\Debug\GridExample.csproj.GenerateResource.cache
+C:\Users\tbdak\OneDrive\Documents\GitHub\ChessGame\Chess\obj\x86\Debug\GridExample.csproj.CoreCompileInputs.cache
+C:\Users\tbdak\OneDrive\Documents\GitHub\ChessGame\Chess\obj\x86\Debug\GridExample.exe
+C:\Users\tbdak\OneDrive\Documents\GitHub\ChessGame\Chess\obj\x86\Debug\GridExample.pdb
