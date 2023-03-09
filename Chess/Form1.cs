@@ -5,6 +5,7 @@ using System.ComponentModel.Design.Serialization;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Drawing.Text;
 using System.Linq;
 using System.Security.Policy;
 using System.Text;
@@ -69,7 +70,7 @@ namespace GridExample
         Bitmap DragPiece = new Bitmap(GridPixSize / 8, GridPixSize / 8);
 
         // Initialize piece string data
-        const string startPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        const string startPosition = "rnbqkbnr/8/8/8/8/8/8/RNBQKBNR w KQkq - 0 1";
         const string Types = "rnbqkpe";
 
         // Initialize Board Array Variables (type, colour, location)
@@ -101,8 +102,6 @@ namespace GridExample
             GameTick.Interval = 10;
             GameTick.Start();
 
-            DrawSideBar();
-
             DrawGrid();
             ReadFEN(startPosition);
         }
@@ -112,10 +111,6 @@ namespace GridExample
             
             MouseX.Text = c.ToString();
             MouseY.Text = r.ToString();
-        }
-        private void ResetGrid()
-        {
-
         }
 
         private void pbxGrid_MouseMove(object sender, MouseEventArgs e)
@@ -188,45 +183,16 @@ namespace GridExample
             if (MouseDown)
             {
                 g.DrawImage(DragPiece, mouse.X - SquareSize * 3 / 10, mouse.Y - SquareSize / 2, SquareSize * 3 / 5, SquareSize);
-                StraightLegal();
+                if (mousePiece.Player == PlayerType.r) { StraightLegal(false); }
+                else if (mousePiece.Player == PlayerType.b) { DiagonalLegal(false); }
+                else if (mousePiece.Player == PlayerType.q) { DiagonalLegal(false); StraightLegal(false); }
+                else if (mousePiece.Player == PlayerType.k) { DiagonalLegal(true); StraightLegal(true); }
+                else if (mousePiece.Player == PlayerType.n) { KnightJump(); }
+                
             }
             pbxGrid.Image = GridImg;
 
             g.Dispose();
-        }
-        
-        
-        private void DrawSideBar()
-        {
-
-            /*
-            Bitmap SideImg = new Bitmap(pbxSide.Width, pbxSide.Height);
-            Graphics g = Graphics.FromImage(SideImg);
-
-            int IconSize = 0;
-            int IconMaxHeight = (pbxSide.Height / Icons.Length) * 6 / 10;
-            int IconMaxWidth = pbxSide.Width * 6 / 10;
-
-            if (IconMaxHeight >= IconMaxWidth)
-            {
-                IconSize = IconMaxWidth;
-            }
-            else if (IconMaxWidth >= IconMaxHeight)
-            {
-                IconSize = IconMaxHeight;
-            }
-
-            int LocationX = (pbxSide.Width - IconSize) / 2;
-            int LocationY = LocationX * 2;
-
-            for (int i = 0; i < Icons.Length; i++)
-            {
-                g.DrawImage(Icons[i], LocationX, LocationY, IconSize, IconSize);
-                LocationY += IconSize + 2 * LocationX;
-            }
-
-            pbxSide.Image = SideImg;
-            */
         }
 
         // FEN STRING CODE //
@@ -380,6 +346,7 @@ namespace GridExample
                 board[r, c].Col = c;
 
                 mousePiece = board[r, c];
+                mousePiece.Colour = board[r, c].Colour;
                 board[r, c] = empty;
                 ReadFEN(BoardtoFEN());
                 
@@ -388,7 +355,7 @@ namespace GridExample
         private void EndDrag(object sender, MouseEventArgs e)
         {
             MouseDown = false;
-
+            
             if (mousePiece.Player == PlayerType.e) { }
             else
             {
@@ -401,6 +368,7 @@ namespace GridExample
 
                 ReadFEN(BoardtoFEN());
             }
+            ClearLegal();
         }
 
 
@@ -415,91 +383,121 @@ namespace GridExample
                 }
             }
         }   
-        private void StraightLegal()
+        private void StraightLegal(bool king)
         {
-            ClearLegal();
             int selfC = mousePiece.Col;
             int selfR = mousePiece.Row;
+            bool exit;
 
             board[selfR, selfC].Legal = LegalMove.Self;
-            //Right
-            for (int c = selfC + 1; c < 8; c++)
+
+            // Right Left
+            for (int n = -1; n <= 1; n += 2)
             {
-                if (board[selfR, c].Player == PlayerType.e)
+                int start = 0;
+                if (n > 0) { start = 8; }
+                else if (n < 0) { start = -1; }
+                for (int c = selfC + n; c != start; c += n)
                 {
-                    board[selfR, c].Legal = LegalMove.Legal;
+                    exit = LegalCalculations(selfR, c);
+                    if (exit || king) { break; }
                 }
-                else if (board[selfR, c].Colour != board[selfR, selfC].Colour && board[selfR, c].Colour != ColourType.Neutral)
-                {
-                    board[selfR, c].Legal = LegalMove.Capture;
-                    break;
-                }
-                else if (board[selfR, c].Colour == board[selfR, selfC].Colour)
-                {
-                    board[selfR, c].Legal = LegalMove.Illegal;
-                }
-                else { board[selfR, c].Legal = LegalMove.Illegal; }
             }
-            //Left
-            for (int c = selfC -1; c >= 0; c--)
+            // Up Down
+            for (int n = -1; n <= 1; n += 2)
             {
-                if (board[selfR, c].Player == PlayerType.e)
+                int start = 0;
+                if (n > 0) { start = 8; }
+                else if (n < 0) { start = -1; }
+                for (int r = selfR + n; r != start; r += n)
                 {
-                    board[selfR, c].Legal = LegalMove.Legal;
+                    exit = LegalCalculations(r, selfC);
+                    if (exit || king) { break; }
                 }
-                else if (board[selfR, c].Colour != board[selfR, selfC].Colour && board[selfR, c].Colour != ColourType.Neutral)
-                {
-                    board[selfR, c].Legal = LegalMove.Capture;
-                    break;
-                }
-                else if (board[selfR, c].Colour == board[selfR, selfC].Colour)
-                {
-                    board[selfR, c].Legal = LegalMove.Illegal;
-                }
-                else { board[selfR, c].Legal = LegalMove.Illegal; }
-            }
-            
-            //Up
-            for (int r = selfR - 1; r >= 0; r--)
-            {
-                if (board[r, selfC].Player == PlayerType.e)
-                {
-                    board[r, selfC].Legal = LegalMove.Legal;
-                }
-                else if (board[r, selfC].Colour != board[selfR, selfC].Colour && board[r, selfC].Colour != ColourType.Neutral)
-                {
-                    board[r, selfC].Legal = LegalMove.Capture;
-                    break;
-                }
-                else if (board[r, selfC].Colour == board[selfR, selfC].Colour)
-                {
-                    board[r, selfC].Legal = LegalMove.Illegal;
-                }
-                else { board[r, selfC].Legal = LegalMove.Illegal; }
-            }
-            //Down
-            for (int r = selfR + 1; r < 8; r++)
-            {
-                if (board[r, selfC].Player == PlayerType.e)
-                {
-                    board[r, selfC].Legal = LegalMove.Legal;
-                }
-                else if (board[r, selfC].Colour != board[selfR, selfC].Colour && board[r, selfC].Colour != ColourType.Neutral)
-                {
-                    board[r, selfC].Legal = LegalMove.Capture;
-                    break;
-                }
-                else if (board[r, selfC].Colour == board[selfR, selfC].Colour)
-                {
-                    board[r, selfC].Legal = LegalMove.Illegal;
-                }
-                else { board[r, selfC].Legal = LegalMove.Illegal; }
             }
         }
 
-        private void DiagonalLegal()
-        { }
+        private void DiagonalLegal(bool king)
+        {
+            int selfC = mousePiece.Col;
+            int selfR = mousePiece.Row;
+            int limitC = 7 - selfC;
+            int limitR = 7 - selfR;
+            bool exit;
 
+            board[selfR, selfC].Legal = LegalMove.Self;
+
+            // Down Right
+            for (int i = 1; i <= limitC && i <= limitR; i ++)
+            {
+                exit = LegalCalculations(i + selfR, i + selfC);
+                if (exit || king) { break; }
+            }
+            
+            // Up Left
+            for (int i = 1; i <= selfR && i <= selfC; i++)
+            {
+                exit = LegalCalculations(selfR - i, selfC - i);
+                if (exit || king) { break; }
+            }
+
+            // Up Right
+            for (int i = 1; i <= selfR && i <= limitC; i++)
+            {
+                exit = LegalCalculations(selfR - i, selfC + i);
+                if (exit || king) { break; }
+            }
+            // Down Left
+            for (int i = 1; i <= limitR && i <= selfC; i++)
+            {
+                exit = LegalCalculations(selfR + i, selfC - i);
+                if (exit || king) { break; }
+            }
+        }
+
+        private void KnightJump()
+        {
+            int selfC = mousePiece.Col;
+            int selfR = mousePiece.Row;
+            bool exit;
+
+            board[selfR, selfC].Legal = LegalMove.Self;
+
+            if (selfR + 1 < 8 && selfC +2 < 8) { LegalCalculations(selfR + 1, selfC + 2); }
+            if (selfR + 2 < 8 && selfC + 1 < 8) { LegalCalculations(selfR + 2, selfC + 1); }
+            if (selfR + 2 < 8 && selfC - 1 >= 0) { LegalCalculations(selfR + 2, selfC - 1); }
+            if (selfR + 1 < 8 && selfC - 2 >= 0) { LegalCalculations(selfR + 1, selfC - 2); }
+            if (selfR - 1 >= 0 && selfC - 2 >= 0) { LegalCalculations(selfR - 1, selfC - 2); }
+            if (selfR - 2 >= 0 && selfC - 1 >= 0) { LegalCalculations(selfR - 2, selfC - 1); }
+            if (selfR - 2 >= 0 && selfC + 1 < 8) { LegalCalculations(selfR - 2, selfC + 1); }
+            if (selfR - 1 >= 0 && selfC + 2 < 8) { LegalCalculations(selfR - 1, selfC + 2); }
+
+
+
+        }
+
+
+        private bool LegalCalculations(int r, int c)
+        {
+            if (board[r, c].Player == PlayerType.e)
+            {
+                board[r, c].Legal = LegalMove.Legal;
+                return false;
+            }
+            else
+            {
+                if (board[r, c].Colour != mousePiece.Colour && board[r, c].Colour != ColourType.Neutral)
+                {
+                    board[r, c].Legal = LegalMove.Capture;
+                }
+                else if (board[r, c].Colour == mousePiece.Colour)
+                {
+                    board[r, c].Legal = LegalMove.Illegal;
+                }
+                return true;
+                
+            }
+        }
         private void KnightLegal()
         { }
 
@@ -510,37 +508,37 @@ namespace GridExample
 
         private void button2_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("This will Initialize a New Game");
+            MessageBox.Show("This will be used to import game PGNs or FENs");
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("This will Initialize a New Game");
+            MessageBox.Show("This will be used to view an archive of previous games");
         }
 
         private void button4_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("This will Initialize a New Game");
+            MessageBox.Show("This will open an interactive FEN position editor");
         }
 
         private void button5_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("This will Initialize a New Game");
+            MessageBox.Show("This will change the theme from light to dark");
         }
 
         private void button6_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("This will Initialize a New Game");
+            MessageBox.Show("This will open theme settings");
         }
 
         private void button7_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("This will Initialize a New Game");
+            MessageBox.Show("This will open a turtorial page for the program");
         }
 
         private void button8_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("This will Initialize a New Game");
+            MessageBox.Show("This will collapse the sidebar and the info box");
         }
     }
 }
