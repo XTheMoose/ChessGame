@@ -699,6 +699,7 @@ namespace GridExample
         {
             if (r < 0 || r > 7 || c < 0 || r > 7)
             { return false; }
+            else if (board[r, c].Player == PlayerType.e)
             {
                 board[r, c].Legal = LegalMove.Legal;
                 return false;
