@@ -7,6 +7,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Security.Policy;
 using System.Text;
 using System.Windows.Forms;
@@ -67,10 +68,13 @@ namespace GridExample
         int c;
         int r;
         new bool MouseDown = false;
+
+        bool Threats = false;
+        string NextToPlay = "w";
         Bitmap DragPiece = new Bitmap(GridPixSize / 8, GridPixSize / 8);
 
         // Initialize piece string data
-        const string startPosition = "rnbqkbnr/pppppppp/8/8/4p3/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        const string startPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         const string Types = "rnbqkpe";
 
         // Initialize Board Array Variables (type, colour, location)
@@ -79,6 +83,9 @@ namespace GridExample
         enum ColourType { Black, White, Neutral }
 
         enum LegalMove { Illegal, Legal, Capture, Self}
+        bool Danger = false;
+
+        enum Castling { Legal, Illegal}
 
         struct PieceType
         {
@@ -87,6 +94,7 @@ namespace GridExample
             public int Row;
             public int Col;
             public LegalMove Legal;
+            public Castling Castling;
         }
 
         // Initialize default board variavles and presets
@@ -108,9 +116,6 @@ namespace GridExample
         private void GameTick_Tick(object sender, EventArgs e)
         {
             DrawGrid();
-            
-            MouseX.Text = c.ToString();
-            MouseY.Text = r.ToString();
         }
 
         private void pbxGrid_MouseMove(object sender, MouseEventArgs e)
@@ -151,6 +156,7 @@ namespace GridExample
             int X = (mouse.X / SquareSize) * SquareSize;
             int Y = (mouse.Y / SquareSize) * SquareSize;
             if (mouse.X >= 0 && mouse.Y >= 0) { g.FillRectangle(highlight, X, Y, SquareSize, SquareSize); }
+
             
             for (int r = 0; r < 8; r++)
             {
@@ -170,6 +176,7 @@ namespace GridExample
                         {
                             highlight.Color = Color.FromArgb(160, 0, 0, 255);
                         }
+
                         else { highlight.Color = Color.Transparent; }
                         g.FillRectangle(highlight, c * SquareSize, r * SquareSize, SquareSize, SquareSize);
                     }
@@ -186,7 +193,11 @@ namespace GridExample
                 if (mousePiece.Player == PlayerType.r) { StraightLegal(false); }
                 else if (mousePiece.Player == PlayerType.b) { DiagonalLegal(false); }
                 else if (mousePiece.Player == PlayerType.q) { DiagonalLegal(false); StraightLegal(false); }
-                else if (mousePiece.Player == PlayerType.k) { DiagonalLegal(true); StraightLegal(true); }
+                else if (mousePiece.Player == PlayerType.k) 
+                {
+                    DiagonalLegal(true); StraightLegal(true); CheckGrid();
+
+                }
                 else if (mousePiece.Player == PlayerType.n) { KnightJump(); }
                 else if (mousePiece.Player == PlayerType.p) { Pawn(); }
                 
@@ -195,6 +206,8 @@ namespace GridExample
 
             g.Dispose();
         }
+
+
 
         // FEN STRING CODE //
         private string[] FENtoPosition(string FEN)                  // Used to split only the position portion of the FEN
@@ -212,7 +225,7 @@ namespace GridExample
         private string[] FENtoRules(string FEN)                     // Used to split only the rules portion of the FEN
         {
             string[] SplitFEN;
-            SplitFEN = FEN.Split('/', ' ');
+            SplitFEN = FEN.Split('/',' ');
             string[] boardrules = new string[5];
             for (int i = 8; i < SplitFEN.Length; i++)
             {
@@ -272,6 +285,19 @@ namespace GridExample
             }
         }
 
+        private int ColourToPlay(string FEN)
+        {
+            if (FEN == "w")
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+
+        }
+
         private string BoardtoFEN()                                         // Read board arrays to create FEN position
         {
             string FEN = "";
@@ -309,9 +335,16 @@ namespace GridExample
                 if (row == SquareNum - 1) { }
                 else { FEN += "/"; }
             }
+            FEN += RulestoFEN();
         return FEN;
         }
-        
+        private string RulestoFEN()
+        {
+            string FEN = " ";
+            FEN += NextToPlay;
+            return FEN;
+        }
+
         private Bitmap FindSprite(int row, int col)                                     // Determines Sprite IMG from board location
         {
             Graphics g = Graphics.FromImage(PieceImg);
@@ -336,8 +369,26 @@ namespace GridExample
         {
             MouseDown = true;
 
-            if (board[r, c].Player == PlayerType.e) { MouseDown = false; }
+            if (board[r, c].Colour == (ColourType)ColourToPlay(FENtoRules(BoardtoFEN())[0]))
+            {
+                if (Danger)
+                {
+                    if (board[r, c].Player == PlayerType.k)
+                    {
+                        LoadDrag();
+                    }
+                }
+                else
+                {
+                    LoadDrag();
+                }
+            }
             else
+            {
+                MouseDown = false;
+            }
+
+            void LoadDrag()
             {
                 DragPiece = FindSprite(r, c);
 
@@ -348,7 +399,6 @@ namespace GridExample
                 mousePiece.Colour = board[r, c].Colour;
                 board[r, c] = empty;
                 ReadFEN(BoardtoFEN());
-                
             }
         }
         private void EndDrag(object sender, MouseEventArgs e)
@@ -358,11 +408,22 @@ namespace GridExample
             if (mousePiece.Player == PlayerType.e) { }
             else
             {
-                if (0 > r || r > 7 || 0 > c || c > 7 || board[r, c].Legal == LegalMove.Illegal)
+                if (0 > r || r > 7 || 0 > c || c > 7 || board[r, c].Legal == LegalMove.Illegal || board[r, c].Legal == LegalMove.Self)
                 {
                     board[mousePiece.Row, mousePiece.Col] = mousePiece;
                 }
-                else { board[r, c] = mousePiece; }
+                else 
+                { 
+                    board[r, c] = mousePiece;
+                    if (FENtoRules(BoardtoFEN())[0] == "w")
+                    {
+                        NextToPlay = "b";
+                    }
+                    else
+                    {
+                        NextToPlay = "w";
+                    }
+                }
                 mousePiece = empty;
 
                 ReadFEN(BoardtoFEN());
@@ -386,72 +447,20 @@ namespace GridExample
         {
             int selfC = mousePiece.Col;
             int selfR = mousePiece.Row;
-            bool exit;
 
             board[selfR, selfC].Legal = LegalMove.Self;
 
-            // Right Left
-            for (int n = -1; n <= 1; n += 2)
-            {
-                int start = 0;
-                if (n > 0) { start = 8; }
-                else if (n < 0) { start = -1; }
-                for (int c = selfC + n; c != start; c += n)
-                {
-                    exit = LegalCalculations(selfR, c);
-                    if (exit || king) { break; }
-                }
-            }
-            // Up Down
-            for (int n = -1; n <= 1; n += 2)
-            {
-                int start = 0;
-                if (n > 0) { start = 8; }
-                else if (n < 0) { start = -1; }
-                for (int r = selfR + n; r != start; r += n)
-                {
-                    exit = LegalCalculations(r, selfC);
-                    if (exit || king) { break; }
-                }
-            }
+            StraightCalc(selfR, selfC, true, king);
         }
 
         private void DiagonalLegal(bool king)
         {
             int selfC = mousePiece.Col;
             int selfR = mousePiece.Row;
-            int limitC = 7 - selfC;
-            int limitR = 7 - selfR;
-            bool exit;
 
             board[selfR, selfC].Legal = LegalMove.Self;
 
-            // Down Right
-            for (int i = 1; i <= limitC && i <= limitR; i ++)
-            {
-                exit = LegalCalculations(i + selfR, i + selfC);
-                if (exit || king) { break; }
-            }
-            
-            // Up Left
-            for (int i = 1; i <= selfR && i <= selfC; i++)
-            {
-                exit = LegalCalculations(selfR - i, selfC - i);
-                if (exit || king) { break; }
-            }
-
-            // Up Right
-            for (int i = 1; i <= selfR && i <= limitC; i++)
-            {
-                exit = LegalCalculations(selfR - i, selfC + i);
-                if (exit || king) { break; }
-            }
-            // Down Left
-            for (int i = 1; i <= limitR && i <= selfC; i++)
-            {
-                exit = LegalCalculations(selfR + i, selfC - i);
-                if (exit || king) { break; }
-            }
+            DiagonalCalc(selfR, selfC, true, king);
         }
 
         private void KnightJump()
@@ -461,14 +470,7 @@ namespace GridExample
 
             board[selfR, selfC].Legal = LegalMove.Self;
 
-            if (selfR + 1 < 8 && selfC +2 < 8) { LegalCalculations(selfR + 1, selfC + 2); }
-            if (selfR + 2 < 8 && selfC + 1 < 8) { LegalCalculations(selfR + 2, selfC + 1); }
-            if (selfR + 2 < 8 && selfC - 1 >= 0) { LegalCalculations(selfR + 2, selfC - 1); }
-            if (selfR + 1 < 8 && selfC - 2 >= 0) { LegalCalculations(selfR + 1, selfC - 2); }
-            if (selfR - 1 >= 0 && selfC - 2 >= 0) { LegalCalculations(selfR - 1, selfC - 2); }
-            if (selfR - 2 >= 0 && selfC - 1 >= 0) { LegalCalculations(selfR - 2, selfC - 1); }
-            if (selfR - 2 >= 0 && selfC + 1 < 8) { LegalCalculations(selfR - 2, selfC + 1); }
-            if (selfR - 1 >= 0 && selfC + 2 < 8) { LegalCalculations(selfR - 1, selfC + 2); }
+            KnightCalc(selfR, selfC, true);
         }
 
         private void Pawn()
@@ -483,36 +485,220 @@ namespace GridExample
             else if (mousePiece.Colour == ColourType.White) { Colour = -1; }
 
             // Allow Forward Movement if Empty Square
-            if (board[selfR + Colour, selfC].Colour == ColourType.Neutral) { LegalCalculations(selfR + Colour, selfC); }
+            if (selfR + Colour < 8 && selfR + Colour >= 0)
+            {
+                if (board[selfR + Colour, selfC].Colour == ColourType.Neutral)
+                {
+                    LegalCalculations(selfR + Colour, selfC);
+                }
+
+            }
+
+            // Allow Pawn moves 2 if on start squares
+            if (selfR + Colour * 2 < 8 && selfR + Colour * 2 >= 0)
+            {
+                if (selfR == 1 || selfR == 6)
+                {
+                    if (board[selfR + 2 * Colour, selfC].Colour == ColourType.Neutral)
+                    {
+                        LegalCalculations(selfR + Colour * 2, selfC);
+                    }
+                }
+            }
 
             // Allow Diagonal Attack if Enemy Piece Present
             for (int d = -1; d < 2; d += 2)
             {
-                if (board[selfR + Colour, selfC + d].Colour != mousePiece.Colour &&
-                    board[selfR + Colour, selfC + d].Colour != ColourType.Neutral)
+                if (selfR + Colour < 8 && selfR + Colour >=0 && 
+                    selfC + d < 8 && selfC + d >= 0)
                 {
-                    LegalCalculations(selfR + Colour, selfC + d);
+                    if (board[selfR + Colour, selfC + d].Colour != mousePiece.Colour 
+                        && board[selfR + Colour, selfC + d].Colour != ColourType.Neutral)
+                    {
+                        LegalCalculations(selfR + Colour, selfC + d);
+                    }
                 }
             }
+        }
 
-            // Check for Promotion
-            if (selfR + Colour == 0 || selfR + Colour == 7) { }
+        //CHECKS
+        private void CheckGrid()
+        {
+            int selfC = mousePiece.Col;
+            int selfR = mousePiece.Row;
 
-            // Allow Pawn moves 2 if on start squares
-            else if (selfR == 1 || selfR == 6 && board[selfR + 2 * Colour, selfC].Colour == ColourType.Neutral)
-            { LegalCalculations(selfR + Colour * 2, selfC); }
+            for (int r = -1; r <= 1; r++)
+            {
+                for (int c = -1; c <= 1; c++)
+                {
+                    if (selfC + c > 7 || selfC + c < 0 || selfR + r > 7 || selfR + r < 0)
+                    {
+                        continue;
+                    }
+                    StraightCalc(selfR + r, selfC + c, false, false);
+                    DiagonalCalc(selfR + r, selfC + c, false, false);
+                    KnightCalc(selfR + r, selfC + c, false);
+                    if (Threats)
+                    {
+                        if (r == 0 && c == 0)
+                        {
+                            Danger = true;
+                        }
+                        else { board[selfR + r, selfC + c].Legal = LegalMove.Illegal; }
+                        Threats = false;
+                    }
+                }
+            }
+        }
+        private bool CheckCalculations(int r, int c, string pieces)
+        {
+            int search = 0;
+            for (int i = 0; i < pieces.Length; i++)
+            {
+                for (int n = 0; n < Types.Length; n++)
+                {
+                    if (pieces[i] == Types[n])
+                    { 
+                        search = n;
+                        break;
+                    }
+                }
+                //Piece in bounds
+                if (r < 0 || r > 7 || c < 0 || r > 7)
+                { return false; }
+                //Is square empty
+                else if (board[r, c].Player == PlayerType.e)
+                {
+                    return false;
+                }
+                //Square Occupied
+                else
+                {
+                    //Is square occupied by opposite colour and is the searched piece
+                    if (board[r, c].Colour != mousePiece.Colour && board[r, c].Colour != ColourType.Neutral && board[r, c].Player == (PlayerType)search)
+                    {
+                        Threats = true;
+                        return true;
+                    }
+                    //Is square occupied by friendly piece blocking check
+                    else if (board[r, c].Colour == mousePiece.Colour && board[r, c].Player != PlayerType.k)
+                    { return true; }
+                    //Is square occupied by enemy piece blocking check
+                    else if (board[r, c].Colour != mousePiece.Colour && board[r, c].Player != (PlayerType)search && board[r, c].Colour != ColourType.Neutral && board[r,c].Player != PlayerType.q)
+                    { return true; }
+                    
+                }
+            }
+            return false;
+        }
 
+        //CALCULATIONS
 
+        private void StraightCalc(int selfR, int selfC, bool Legal, bool king)
+        {
+            bool exit;
 
-            
-            
-            
+            // Up Down
+            for (int n = -1; n <= 1; n += 2)
+            {
+                int start = 0;
+                if (n > 0) { start = 8; }
+                else if (n < 0) { start = -1; }
+                for (int r = selfR + n; r != start; r += n)
+                {
+                    if (Legal)
+                    {
+                        exit = LegalCalculations(r, selfC);
+                        if (exit || king) { break; }
+                    }
+                    else if (Legal != true)
+                    {
+                        exit = CheckCalculations(r, selfC, "rq");
+                        if (Threats) { return; }
+                        if (exit) { break; }
+                    }
+                }
+            }
+            // Right Left
+            for (int n = -1; n <= 1; n += 2)
+            {
+                int start = 0;
+                if (n > 0) { start = 8; }
+                else if (n < 0) { start = -1; }
+                for (int c = selfC + n; c != start; c += n)
+                {
+                    if (Legal)
+                    {
+                        exit = LegalCalculations(selfR, c);
+                        if (exit || king) { break; }
+                    }
+                    else if (Legal != true)
+                    {
+                        exit = CheckCalculations(selfR, c, "rq");
+                        if (Threats) { return; }
+                        if (exit) { break; }
+                    }
+                }
+            }
+        }
+        private void DiagonalCalc(int selfR, int selfC, bool Legal, bool king)
+        {
+            bool exit;
 
+            int[,] limit = { { 7 - selfC, selfC, 7 - selfC, selfC }, { 7 - selfR, selfR, selfR, 7 - selfR } };
+            int[,] direction = { { 1, -1, -1, 1 }, { 1, -1, 1, -1 } };
+
+            for (int n = 0; n < 4; n++)
+            {
+                for (int i = 1; i <= limit[0, n] && i <= limit[1, n]; i++)
+                {   
+                    if (Legal)
+                    {
+                        exit = LegalCalculations(i * direction[0, n] + selfR, i * direction[1, n] + selfC);
+                        if (exit || king) { break; }
+                    }
+                    else if (Legal != true)
+                    {
+                        exit = CheckCalculations(i * direction[0, n] + selfR, i * direction[1, n] + selfC, "bq");
+                        if (Threats) { return; }
+                        if (exit) { break; }
+                    }
+                }
+
+            }
+        }
+
+        private void KnightCalc(int selfR, int selfC, bool Legal)
+        {
+            bool exit;
+
+            if (selfR + 1 < 8 && selfC + 2 < 8) { CheckLegal(selfR + 1, selfC + 2); }
+            if (selfR + 2 < 8 && selfC + 1 < 8) { CheckLegal(selfR + 2, selfC + 1); }
+            if (selfR + 2 < 8 && selfC - 1 >= 0) { CheckLegal(selfR + 2, selfC - 1); }
+            if (selfR + 1 < 8 && selfC - 2 >= 0) { CheckLegal(selfR + 1, selfC - 2); }
+            if (selfR - 1 >= 0 && selfC - 2 >= 0) { CheckLegal(selfR - 1, selfC - 2); }
+            if (selfR - 2 >= 0 && selfC - 1 >= 0) { CheckLegal(selfR - 2, selfC - 1); }
+            if (selfR - 2 >= 0 && selfC + 1 < 8) { CheckLegal(selfR - 2, selfC + 1); }
+            if (selfR - 1 >= 0 && selfC + 2 < 8) { CheckLegal(selfR - 1, selfC + 2); }
+
+            void CheckLegal(int r, int c)
+            {
+                if (Legal)
+                {
+                    LegalCalculations(r, c);
+                }
+                else if (Legal != true)
+                {
+                    CheckCalculations(r, c, "n");
+                    if (Threats) { return; }
+                }
+            }
         }
 
         private bool LegalCalculations(int r, int c)
         {
-            if (board[r, c].Player == PlayerType.e)
+            if (r < 0 || r > 7 || c < 0 || r > 7)
+            { return false; }
             {
                 board[r, c].Legal = LegalMove.Legal;
                 return false;

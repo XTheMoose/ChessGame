@@ -30,8 +30,6 @@
         {
             this.components = new System.ComponentModel.Container();
             this.GameTick = new System.Windows.Forms.Timer(this.components);
-            this.MouseX = new System.Windows.Forms.Label();
-            this.MouseY = new System.Windows.Forms.Label();
             this.button8 = new System.Windows.Forms.Button();
             this.button7 = new System.Windows.Forms.Button();
             this.button6 = new System.Windows.Forms.Button();
@@ -43,6 +41,7 @@
             this.pbxInfo = new System.Windows.Forms.PictureBox();
             this.pbxGrid = new System.Windows.Forms.PictureBox();
             this.panelSideBar = new System.Windows.Forms.Panel();
+            this.dangertxt = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pbxInfo)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbxGrid)).BeginInit();
             this.panelSideBar.SuspendLayout();
@@ -51,26 +50,6 @@
             // GameTick
             // 
             this.GameTick.Tick += new System.EventHandler(this.GameTick_Tick);
-            // 
-            // MouseX
-            // 
-            this.MouseX.AutoSize = true;
-            this.MouseX.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.MouseX.Location = new System.Drawing.Point(1073, 48);
-            this.MouseX.Name = "MouseX";
-            this.MouseX.Size = new System.Drawing.Size(54, 25);
-            this.MouseX.TabIndex = 2;
-            this.MouseX.Text = "Test";
-            // 
-            // MouseY
-            // 
-            this.MouseY.AutoSize = true;
-            this.MouseY.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.MouseY.Location = new System.Drawing.Point(1004, 48);
-            this.MouseY.Name = "MouseY";
-            this.MouseY.Size = new System.Drawing.Size(54, 25);
-            this.MouseY.TabIndex = 3;
-            this.MouseY.Text = "Test";
             // 
             // button8
             // 
@@ -233,14 +212,22 @@
             this.panelSideBar.Size = new System.Drawing.Size(76, 683);
             this.panelSideBar.TabIndex = 13;
             // 
+            // dangertxt
+            // 
+            this.dangertxt.AutoSize = true;
+            this.dangertxt.Location = new System.Drawing.Point(871, 129);
+            this.dangertxt.Name = "dangertxt";
+            this.dangertxt.Size = new System.Drawing.Size(35, 13);
+            this.dangertxt.TabIndex = 14;
+            this.dangertxt.Text = "label1";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.ClientSize = new System.Drawing.Size(1264, 681);
-            this.Controls.Add(this.MouseY);
-            this.Controls.Add(this.MouseX);
+            this.Controls.Add(this.dangertxt);
             this.Controls.Add(this.pbxInfo);
             this.Controls.Add(this.pbxGrid);
             this.Controls.Add(this.panelSideBar);
@@ -262,8 +249,6 @@
 
         private System.Windows.Forms.PictureBox pbxGrid;
         private System.Windows.Forms.Timer GameTick;
-        private System.Windows.Forms.Label MouseX;
-        private System.Windows.Forms.Label MouseY;
         private System.Windows.Forms.PictureBox pbxInfo;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button button2;
@@ -274,6 +259,7 @@
         private System.Windows.Forms.Button button7;
         private System.Windows.Forms.Button button8;
         private System.Windows.Forms.Panel panelSideBar;
+        private System.Windows.Forms.Label dangertxt;
     }
 }
 
